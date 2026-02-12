@@ -1,0 +1,167 @@
+{
+  "$id": "https://github.com/data-fair/catalog-mock/catalog-config",
+  "x-exports": [
+    "types",
+    "validate",
+    "schema"
+  ],
+  "title": "MockConfig",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "url",
+    "delay"
+  ],
+  "properties": {
+    "url": {
+      "type": "string",
+      "title": "URL",
+      "description": "The url of the catalog",
+      "x-i18n-description": {
+        "fr": "L'URL de l'API du catalogue"
+      },
+      "pattern": "^https?://.*[^/]$",
+      "errorMessage": "The URL must start with http:// or https:// and must not end with `/`.",
+      "x-i18n-errorMessage": {
+        "fr": "L'URL doit commencer par http:// ou https:// et ne pas se terminer par `/`."
+      },
+      "examples": ["https://example.com"]
+    },
+    "secretField": {
+      "type": "string",
+      "title": "Secret Field",
+      "x-i18n-title": {
+        "fr": "Champ chiffré"
+      },
+      "description": "A secret field that is ciphered but for testing purposes, shown in the description of imported datasets.",
+      "x-i18n-description": {
+        "fr": "Un champ secret qui est chiffré mais qui, à des fins de test, est affiché dans la description des jeux de données importés."
+      },
+      "layout": {
+        "props": {
+          "type": "password",
+          "autocomplete": "suppress"
+        }
+      }
+    },
+    "thumbnailUrl": {
+      "type": "string",
+      "title": "Thumbnail URL",
+      "x-i18n-title": {
+        "fr": "URL de la vignette"
+      },
+      "description": "The URL of the thumbnail image for the catalog. If not provided, no thumbnail will be displayed.",
+      "x-i18n-description": {
+        "fr": "L'URL de l'image miniature du catalogue. Si non fourni, aucune vignette ne sera affichée."
+      },
+      "pattern": "^https?://.*[^/]$",
+      "errorMessage": "The Thumbnail URL must start with http:// or https:// and must not end with `/`.",
+      "x-i18n-errorMessage": {
+        "fr": "L'URL de la vignette doit commencer par http:// ou https:// et ne pas se terminer par `/`."
+      },
+      "examples": ["https://cdn.jsdelivr.net/gh/data-fair/data-fair@master/ui/public/assets/logo.svg"],
+      "layout": {
+        "props": {
+          "clearable": true
+        }
+      }
+    },
+    "delay": {
+      "type": "number",
+      "title": "Response Delay",
+      "x-i18n-title": {
+        "fr": "Délai de réponse"
+      },
+      "description": "Adds a response delay (in ms) to requests to simulate server response time. Set to 0 to disable.",
+      "x-i18n-description": {
+        "fr": "Ajoute un temps de réponse (en ms) aux requêtes pour simuler un délai de réponse du serveur. La valeur 0 désactive le délai."
+      },
+      "default": 500,
+      "minimum": 0,
+      "maximum": 60000,
+      "layout": {
+        "cols": 4,
+        "props": {
+          "step": 100
+        }
+      }
+    },
+    "searchCapability": {
+      "type": "boolean",
+      "title": "Search Capability",
+      "x-i18n-title": {
+        "fr": "Capacité de recherche"
+      },
+      "description": "Indicates whether the catalog dynamically supports the search feature.",
+      "x-i18n-description": {
+        "fr": "Indique si le catalogue prend en charge dynamiquement la fonctionnalité de recherche."
+      },
+      "default": true,
+      "layout": {
+        "comp": "switch",
+        "cols": 4
+      }
+    },
+    "paginationCapability": {
+      "type": "boolean",
+      "title": "Pagination Capability",
+      "x-i18n-title": {
+        "fr": "Capacité de pagination"
+      },
+      "description": "Indicates whether the catalog dynamically supports pagination.",
+      "x-i18n-description": {
+        "fr": "Indique si le catalogue prend en charge dynamiquement la pagination."
+      },
+      "default": true,
+      "layout": {
+        "comp": "switch",
+        "cols": 4
+      }
+    },
+    "publicationMode": {
+      "type": "string",
+      "title": "Publication Mode",
+      "x-i18n-title": {
+        "fr": "Mode de publication"
+      },
+      "description": "Select the publication mode to test different scenarios: 'none' for no publication capabilities, 'simple' for basic publication (one capability), 'full' for all publication capabilities, or 'withSite' for all capabilities including requiresPublicationSite.",
+      "x-i18n-description": {
+        "fr": "Sélectionnez le mode de publication pour tester différents scénarios : 'none' pour aucune capacité de publication, 'simple' pour une publication basique (une seule capacité), 'full' pour toutes les capacités de publication, ou 'withSite' pour toutes les capacités y compris requiresPublicationSite."
+      },
+      "default": "full",
+      "layout": {
+        "cols": 6
+      },
+      "oneOf": [
+        {
+          "const": "none",
+          "title": "No publication",
+          "x-i18n-title": {
+            "fr": "Aucune publication"
+          }
+        },
+        {
+          "const": "simple",
+          "title": "Simple (createFolderInRoot only)",
+          "x-i18n-title": {
+            "fr": "Simple (createFolderInRoot uniquement)"
+          }
+        },
+        {
+          "const": "full",
+          "title": "Full (all publication capabilities)",
+          "x-i18n-title": {
+            "fr": "Complet (toutes les capacités de publication)"
+          }
+        },
+        {
+          "const": "withSite",
+          "title": "With publication site (requiresPublicationSite)",
+          "x-i18n-title": {
+            "fr": "Avec site de publication (requiresPublicationSite)"
+          }
+        }
+      ]
+    }
+  }
+}

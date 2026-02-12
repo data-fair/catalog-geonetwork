@@ -1,0 +1,41 @@
+{
+  "$id": "https://github.com/data-fair/catalog-mock/import-config",
+  "x-exports": [
+    "types",
+    "validate",
+    "schema"
+  ],
+  "title": "ImportConfig",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "nbRows"
+  ],
+  "properties": {
+    "nbRows": {
+      "title": "Number of rows to import",
+      "x-i18n-title": {
+        "fr": "Nombre de lignes à importer"
+      },
+      "description": "Number of rows to import. The header is always imported and does not count towards this number.",
+      "x-i18n-description": {
+        "fr": "Nombre de lignes à importer. Le header est toujours importé et ne compte pas dans ce nombre."
+      },
+      "type": "integer",
+      "default": 10,
+      "minimum": 5,
+      "maximum": 50
+    },
+    "importAttachments": {
+      "title": "Import attachments",
+      "x-i18n-title": {
+        "fr": "Importer les pièces jointes"
+      },
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "layout": {
+    "title": null
+  }
+}
