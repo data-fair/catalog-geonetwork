@@ -7,20 +7,12 @@ import type { Capability } from '@data-fair/types-catalogs'
  */
 export const capabilities = [
   'thumbnail',
-  'thumbnailUrl',
   'search',
   'pagination',
 
   'import',
   'importConfig',
-
-  'createFolderInRoot',
-  'createFolder',
-  'createResource',
-  'replaceFolder',
-  'replaceResource',
-  'requiresPublicationSite'
 ] satisfies Capability[]
 
-export type MockCapabilities = typeof capabilities
+export type GeoNetworkCapabilities = typeof capabilities
 export default capabilities

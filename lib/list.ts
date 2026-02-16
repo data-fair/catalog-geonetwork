@@ -1,114 +1,148 @@
-import type { CatalogPlugin, ListContext, Folder } from '@data-fair/types-catalogs'
-import type { MockConfig } from '#types'
-import type { MockCapabilities } from './capabilities.ts'
+import type { CatalogPlugin, ListContext } from '@data-fair/types-catalogs'
+import type { GeoNetworkConfig } from '#types'
+import type { CswRecord } from './utils/types.ts'
+import { XMLParser } from 'fast-xml-parser'
+import axios from '@data-fair/lib-node/axios.js'
+import capabilities from './capabilities.ts'
 
-// Generate a random recent ISO date (within the last year)
-const randomRecentIso = () => {
-  const ms = Math.floor(Math.random() * 364 * 24 * 60 * 60 * 1000)
-  return new Date(Date.now() - ms).toISOString()
+type ResourceList = Awaited<ReturnType<CatalogPlugin['list']>>['results']
+
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '',
+  removeNSPrefix: true
+})
+
+const asArray = (input: any): any[] => {
+  if (!input) return []
+  return Array.isArray(input) ? input : [input]
 }
 
-export const list = async ({ catalogConfig, secrets, params }: ListContext<MockConfig, MockCapabilities>): ReturnType<CatalogPlugin['list']> => {
-  await new Promise(resolve => setTimeout(resolve, catalogConfig.delay)) // Simulate a delay for the mock plugin
+const getTextValue = (input: any): string => {
+  if (!input) return ''
+  if (Array.isArray(input)) return input[0] || ''
+  return String(input)
+}
 
-  const tree = (await import('./resources/resources-mock.ts')).default
+export const list = async (config: ListContext<GeoNetworkConfig, typeof capabilities>): ReturnType<CatalogPlugin<GeoNetworkConfig>['list']> => {
+  const { catalogConfig, params } = config
+  const query = params?.q ? params.q.trim() : ''
+  const page = Number(params?.page || 1)
+  const size = Number(params?.size || 10)
+  const startPosition = (page - 1) * size + 1
 
-  /**
-   * Extracts folders and resources for a given parent/folder ID
-   * @param resources - The resources object containing folders and resources
-   * @param targetId - The parent ID for folders or folder ID for resources (undefined for root level)
-   * @returns Array of folders and resources matching the criteria
-   */
-  const getFoldersAndResources = (targetId: string | undefined) => {
-    const folders = Object.keys(tree.folders).reduce((acc: Folder[], key) => {
-      if (tree.folders[key].parentId !== targetId) return acc // Skip folders that are not under the targetId
-      acc.push({
-        id: key,
-        title: tree.folders[key].title,
-        type: 'folder',
-        updatedAt: randomRecentIso()
-      })
-      return acc
-    }, [])
+  const formatFilter = `
+    <ogc:Or>
+      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+        <ogc:PropertyName>AnyText</ogc:PropertyName>
+        <ogc:Literal>%SHAPE-ZIP%</ogc:Literal>
+      </ogc:PropertyIsLike>
+      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+        <ogc:PropertyName>AnyText</ogc:PropertyName>
+        <ogc:Literal>%csv%</ogc:Literal>
+      </ogc:PropertyIsLike>
+      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+        <ogc:PropertyName>AnyText</ogc:PropertyName>
+        <ogc:Literal>%json%</ogc:Literal>
+      </ogc:PropertyIsLike>
+      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+        <ogc:PropertyName>AnyText</ogc:PropertyName>
+        <ogc:Literal>%geojson%</ogc:Literal>
+      </ogc:PropertyIsLike>
+      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+        <ogc:PropertyName>Protocol</ogc:PropertyName>
+        <ogc:Literal>%OGC:WFS%</ogc:Literal>
+      </ogc:PropertyIsLike>
+    </ogc:Or>`
 
-    // In the mock plugin, we assume that resources are always under a folder
-    if (!targetId) return folders
+  const filterBlock = query
+    ? `
+    <ogc:And>
+      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+        <ogc:PropertyName>AnyText</ogc:PropertyName>
+        <ogc:Literal>%${query}%</ogc:Literal>
+      </ogc:PropertyIsLike>
+      ${formatFilter}
+    </ogc:And>`
+    : formatFilter
 
-    const resources = tree.folders[targetId]?.resourceIds.reduce((acc: Awaited<ReturnType<CatalogPlugin['list']>>['results'], resourceId) => {
-      const resource = tree.resources[resourceId]
-      if (!resource) return acc // Skip if resource not found
+  const constraintBlock = `
+    <csw:Constraint version="1.1.0">
+      <ogc:Filter>
+        ${filterBlock}
+      </ogc:Filter>
+    </csw:Constraint>
+    <ogc:SortBy xmlns:ogc="http://www.opengis.net/ogc">
+      <ogc:SortProperty>
+        <ogc:PropertyName>RevisionDate</ogc:PropertyName>
+        <ogc:SortOrder>DESC</ogc:SortOrder>
+      </ogc:SortProperty>
+    </ogc:SortBy>`
 
-      acc.push({
-        id: resourceId,
-        title: resource.title,
-        description: resource.description + '\n\n' + secrets.secretField, // Include the secret in the description for demonstration
-        format: resource.format,
-        mimeType: resource.mimeType,
-        origin: resource.origin,
-        size: resource.size,
-        updatedAt: resource.updatedAt,
-        type: 'resource'
-      })
-      return acc
-    }, [])
+  const cswBody = `
+    <csw:GetRecords 
+      xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" 
+      xmlns:ogc="http://www.opengis.net/ogc" 
+      service="CSW" 
+      version="2.0.2" 
+      resultType="results" 
+      startPosition="${startPosition}" 
+      maxRecords="${size}" 
+      outputSchema="http://www.opengis.net/cat/csw/2.0.2">
+      <csw:Query typeNames="csw:Record">
+        <csw:ElementSetName>summary</csw:ElementSetName>
+        ${constraintBlock}
+      </csw:Query>
+    </csw:GetRecords>`
 
-    return [...folders, ...resources]
-  }
+  try {
+    const baseUrl = `${catalogConfig.url}/srv/fre/csw`
 
-  const path: Folder[] = []
-  let res = getFoldersAndResources(params.currentFolderId)
-  // Get total count before search and pagination
-  const totalCount = res.length
+    const response = await axios.post(baseUrl, cswBody, {
+      headers: { 'Content-Type': 'application/xml' }
+    })
 
-  // Apply search filter if provided
-  if (params.q && catalogConfig.searchCapability) {
-    const searchTerm = params.q.toLowerCase()
-    res = res.filter(item =>
-      item.title.toLowerCase().includes(searchTerm) ||
-      ('description' in item && item.description?.toLowerCase().includes(searchTerm))
-    )
-  }
-
-  if (catalogConfig.paginationCapability && params.page && params.size) {
-    // Apply pagination
-    const size = params.size || 20
-    const page = params.page || 0
-    const skip = (page - 1) * size
-    res = res.slice(skip, skip + size)
-  }
-
-  // Get path to current folder if specified
-  if (params.currentFolderId) {
-    // Get current folder
-    const currentFolder = tree.folders[params.currentFolderId]
-    if (!currentFolder) throw new Error(`Folder with ID ${params.currentFolderId} not found`)
-
-    // Get path to current folder (parents folders)
-    let parentId = currentFolder.parentId
-    while (parentId) {
-      const parentFolder = tree.folders[parentId]
-      if (!parentFolder) throw new Error(`Parent folder with ID ${parentId} not found`)
-
-      // Add the parent to the start of the list to avoid reversing the path later
-      path.unshift({
-        id: parentId,
-        title: parentFolder.title,
-        type: 'folder'
-      })
-      parentId = parentFolder.parentId
+    const parsed = parser.parse(response.data)
+    const root = parsed.GetRecordsResponse || parsed['csw:GetRecordsResponse']
+    if (!root) {
+      console.error('[GeoNetwork] ERREUR: Réponse XML invalide (pas de GetRecordsResponse)')
+      return { count: 0, results: [], path: [] }
     }
 
-    // Add the current folder to the path
-    path.push({
-      id: params.currentFolderId,
-      title: currentFolder.title,
-      type: 'folder'
-    })
-  }
+    const searchResults = root.SearchResults || root['csw:SearchResults']
+    if (!searchResults) {
+      console.error('[GeoNetwork] ERREUR: Pas de SearchResults')
+      return { count: 0, results: [], path: [] }
+    }
 
-  return {
-    count: totalCount,
-    results: res,
-    path
+    const totalCount = parseInt(searchResults.numberOfRecordsMatched || searchResults['numberOfRecordsMatched'] || '0', 10)
+    const rawRecords = searchResults.SummaryRecord || searchResults.Record || []
+    const records = asArray(rawRecords) as CswRecord[]
+
+    const listResults = records.map((record: any) => {
+      const identifier = getTextValue(record.identifier || record['dc:identifier'])
+      const titleRecord = getTextValue(record.title || record['dc:title']) || 'Sans titre'
+      const dateRaw = record.RevisionDate || record['dct:modified'] || record.dateStamp || record['dateStamp']
+      const date = getTextValue(dateRaw)
+      const type = getTextValue(record.type || record['dc:type'])
+      return {
+        id: identifier,
+        title: titleRecord,
+        updatedAt: date || new Date().toISOString(),
+        type: 'resource',
+        origin: `${catalogConfig.url}/srv/fre/catalog.search#/metadata/${identifier}`,
+        format: type || 'unknown'
+      }
+    }) as ResourceList
+
+    return {
+      count: totalCount,
+      results: listResults,
+      path: []
+    }
+  } catch (error: any) {
+    console.error('[GeoNetwork] ERREUR :', error.message)
+    if (error.response) console.error('Data:', error.response.data)
+    throw new Error('Erreur lors de la recherche CSW')
   }
 }
