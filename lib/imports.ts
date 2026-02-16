@@ -59,7 +59,7 @@ const findBestDownloadUrl = (metadata: any, resourceId: string, log: any): { url
     }
 
     if ((u.includes('/json') || u.includes('.json') || p.includes('application/json') || n === 'json') && !u.includes('geojson')) {
-      return { url, format: 'geojson', score: 8 }
+      return { url, format: 'json', score: 8 }
     }
 
     if (p.includes('ogc:wfs') || u.includes('service=wfs')) {
@@ -103,6 +103,7 @@ const findBestDownloadUrl = (metadata: any, resourceId: string, log: any): { url
       else if (format === 'csv') url = url.replace(/outputFormat=[^&]*/i, 'OUTPUTFORMAT=csv')
       else if (format === 'geojson') url = url.replace(/outputFormat=[^&]*/i, 'OUTPUTFORMAT=application/json')
     }
+    log.info(`Selected download URL: ${url}, format: ${format}`)
     return { url, format }
   }
 
@@ -154,16 +155,18 @@ export const getResource = async ({ importConfig, catalogConfig, resourceId, tmp
 
     await log.step('Téléchargement du fichier')
 
-    let fileName = path.basename(downloadInfo.url).split('?')[0] || `${resourceId}`
+    let fileName = `${resourceId}`
 
-    if (downloadInfo.format === 'shapefile' && !fileName.toLowerCase().endsWith('.zip')) {
+    if (downloadInfo.format === 'shapefile') {
       fileName += '.zip'
-    } else if (downloadInfo.format === 'geojson' && !fileName.toLowerCase().endsWith('.json') && !fileName.toLowerCase().endsWith('.geojson')) {
+    } else if (downloadInfo.format === 'geojson') {
       fileName += '.geojson'
-    } else if (downloadInfo.format === 'csv' && !fileName.toLowerCase().endsWith('.csv')) {
+    } else if (downloadInfo.format === 'csv') {
       fileName += '.csv'
+    } else if (downloadInfo.format === 'json') {
+      fileName += '.json'
     } else {
-      throw new Error(`Format de téléchargement non supporté ou non reconnu pour ${resourceId}`)
+      fileName += path.extname(downloadInfo.url.split('?')[0]) || ''
     }
 
     const destPath = path.join(tmpDir, fileName)
