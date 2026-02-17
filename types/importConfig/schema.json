@@ -7,29 +7,5 @@
   ],
   "title": "ImportConfig",
   "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "auth": {
-      "type": "object",
-      "title": "Authentification (Optionnel - pour les données privées)",
-      "properties": {
-        "username": {
-          "type": "string",
-          "title": "Identifiant"
-        },
-        "password": {
-          "type": "string",
-          "title": "Mot de passe",
-          "x-display": "password",
-          "props": {
-            "type": "password",
-            "autocomplete": "suppress"
-          }
-        }
-      }
-    }
-  },
-  "layout": {
-    "title": null
-  }
+  "additionalProperties": false
 }

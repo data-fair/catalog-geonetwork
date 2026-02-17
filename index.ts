@@ -1,5 +1,5 @@
 import type CatalogPlugin from '@data-fair/types-catalogs'
-import { importConfigSchema, configSchema, assertConfigValid, type CSWConfig } from '#types'
+import { configSchema, assertConfigValid, type CSWConfig } from '#types'
 import { type CSWCapabilities, capabilities } from './lib/capabilities.ts'
 
 const plugin: CatalogPlugin<CSWConfig, CSWCapabilities> = {
@@ -21,7 +21,6 @@ const plugin: CatalogPlugin<CSWConfig, CSWCapabilities> = {
 
   metadata: {
     title: 'CSW',
-    thumbnailPath: './lib/resources/logo.png',
     i18n: {
       en: { description: 'Uses CSW to import datasets (CSW, ...)' },
       fr: { description: 'Utilise du CSW pour importer des datasets (CSW, ...)' }
@@ -29,7 +28,6 @@ const plugin: CatalogPlugin<CSWConfig, CSWCapabilities> = {
     capabilities
   },
 
-  importConfigSchema,
   configSchema,
   assertConfigValid
 }

@@ -78,8 +78,39 @@ export async function downloadFileWithProgress (
     })
   } catch (err: any) {
     if (err.response) {
-      if (err.response.status === 401) {
-        throw new Error('Accès Refusé (Unauthorized). Vérifiez les identifiants dans la configuration')
+      const status = err.response.status
+      if (status >= 400 && status < 500) {
+        let msg = `Erreur client (${status})`
+        switch (status) {
+          case 400:
+            msg = 'Requête invalide (400). Les paramètres envoyés sont peut-être incorrects.'
+            break
+          case 401:
+            msg = 'Accès refusé (401). Vérifiez le nom d\'utilisateur et le mot de passe dans la configuration.'
+            break
+          case 403:
+            msg = 'Accès interdit (403). Vous n\'avez pas les droits nécessaires pour accéder à ce fichier.'
+            break
+          case 404:
+            msg = 'Fichier introuvable (404). L\'URL de téléchargement n\'existe plus ou est incorrecte.'
+            break
+          case 408:
+            msg = 'Délai d\'attente dépassé (408). Le serveur a mis trop de temps à répondre.'
+            break
+          case 410:
+            msg = 'Ressource indisponible (410). Le fichier a été définitivement supprimé.'
+            break
+          case 421:
+            msg = 'Requête mal dirigée (421). Le serveur ne peut pas répondre (problème de certificat SSL).'
+            break
+          case 429:
+            msg = 'Trop de requêtes (429). Le serveur limite le nombre de téléchargements (rate limit).'
+            break
+          default:
+            msg = `Erreur client non gérée (${status}).`
+        }
+        await log.error(msg)
+        throw new Error(msg)
       }
     }
     writer.close()

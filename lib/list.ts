@@ -4,6 +4,7 @@ import type { CswRecord } from './utils/types.ts'
 import { XMLParser } from 'fast-xml-parser'
 import axios from '@data-fair/lib-node/axios.js'
 import capabilities from './capabilities.ts'
+import { asArray } from './utils/common.ts'
 
 type ResourceList = Awaited<ReturnType<CatalogPlugin['list']>>['results']
 
@@ -12,11 +13,6 @@ const parser = new XMLParser({
   attributeNamePrefix: '',
   removeNSPrefix: true
 })
-
-const asArray = (input: any): any[] => {
-  if (!input) return []
-  return Array.isArray(input) ? input : [input]
-}
 
 const getTextValue = (input: any): string => {
   if (!input) return ''
@@ -48,10 +44,6 @@ export const list = async (config: ListContext<CSWConfig, typeof capabilities>):
       <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
         <ogc:PropertyName>AnyText</ogc:PropertyName>
         <ogc:Literal>%geojson%</ogc:Literal>
-      </ogc:PropertyIsLike>
-      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
-        <ogc:PropertyName>Protocol</ogc:PropertyName>
-        <ogc:Literal>%OGC:WFS%</ogc:Literal>
       </ogc:PropertyIsLike>
     </ogc:Or>`
 
