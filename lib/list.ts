@@ -4,7 +4,7 @@ import type { CswRecord } from './utils/types.ts'
 import { XMLParser } from 'fast-xml-parser'
 import axios from '@data-fair/lib-node/axios.js'
 import capabilities from './capabilities.ts'
-import { asArray } from './utils/common.ts'
+import { asArray, getText } from './utils/common.ts'
 
 type ResourceList = Awaited<ReturnType<CatalogPlugin['list']>>['results']
 
@@ -13,12 +13,6 @@ const parser = new XMLParser({
   attributeNamePrefix: '',
   removeNSPrefix: true
 })
-
-const getTextValue = (input: any): string => {
-  if (!input) return ''
-  if (Array.isArray(input)) return input[0] || ''
-  return String(input)
-}
 
 /**
  * Performs a CSW GetRecords request to list resources based on the provided query and pagination parameters.
@@ -117,15 +111,15 @@ export const list = async (config: ListContext<CSWConfig, typeof capabilities>):
     const records = asArray(rawRecords) as CswRecord[]
 
     const listResults = records.map((record: any) => {
-      const identifier = getTextValue(record.identifier || record['dc:identifier'])
-      const titleRecord = getTextValue(record.title || record['dc:title']) || 'Sans titre'
-      const dateRaw = record.RevisionDate || record['dct:modified'] || record.dateStamp || record['dateStamp']
-      const date = getTextValue(dateRaw)
-      const type = getTextValue(record.type || record['dc:type'])
+      const identifier = getText(record.identifier || record['dc:identifier'])
+      const titleRecord = getText(record.title || record['dc:title']) || 'Sans titre'
+      const rawDateObj = record.modified || record.date || record.dateStamp || record.RevisionDate
+      const dateRaw = getText(rawDateObj)
+      const type = getText(record.type || record['dc:type'])
       return {
         id: identifier,
         title: titleRecord,
-        updatedAt: date || new Date().toISOString(),
+        updatedAt: dateRaw || new Date().toISOString(),
         type: 'resource',
         format: type || 'unknown'
       }
