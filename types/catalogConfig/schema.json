@@ -10,8 +10,10 @@
   "additionalProperties": false,
   "properties": {
     "url": {
-      "title": "URL du service CSW",
+      "title": "CSW service URL",
+      "x-i18n-title": "URL du service CSW",
       "description": "L'URL du point d'accès CSW (ex: https://geobretagne.fr/geonetwork/srv/fre/csw)",
+      "x-i18n-description": "The URL of the CSW endpoint (ex: https://geobretagne.fr/geonetwork/srv/fre/csw)",
       "type": "string",
       "format": "uri",
       "default": "https://geobretagne.fr/geonetwork/srv/fre/csw"
