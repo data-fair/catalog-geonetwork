@@ -1,6 +1,6 @@
 {
-  "name": "@data-fair/catalog-geonetwork",
-  "description": "A simple geoNetwork plugin for the Data Fair catalogs service.",
+  "name": "@data-fair/catalog-CSW",
+  "description": "A simple CSW plugin for the Data Fair catalogs service.",
   "version": "0.1.0",
   "main": "index.ts",
   "type": "module",

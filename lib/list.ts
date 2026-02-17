@@ -1,5 +1,5 @@
 import type { CatalogPlugin, ListContext } from '@data-fair/types-catalogs'
-import type { GeoNetworkConfig } from '#types'
+import type { CSWConfig } from '#types'
 import type { CswRecord } from './utils/types.ts'
 import { XMLParser } from 'fast-xml-parser'
 import axios from '@data-fair/lib-node/axios.js'
@@ -24,7 +24,7 @@ const getTextValue = (input: any): string => {
   return String(input)
 }
 
-export const list = async (config: ListContext<GeoNetworkConfig, typeof capabilities>): ReturnType<CatalogPlugin<GeoNetworkConfig>['list']> => {
+export const list = async (config: ListContext<CSWConfig, typeof capabilities>): ReturnType<CatalogPlugin<CSWConfig>['list']> => {
   const { catalogConfig, params } = config
   const query = params?.q ? params.q.trim() : ''
   const page = Number(params?.page || 1)
@@ -96,7 +96,7 @@ export const list = async (config: ListContext<GeoNetworkConfig, typeof capabili
     </csw:GetRecords>`
 
   try {
-    const baseUrl = `${catalogConfig.url}/srv/fre/csw`
+    const baseUrl = catalogConfig.url
 
     const response = await axios.post(baseUrl, cswBody, {
       headers: { 'Content-Type': 'application/xml' }
@@ -105,13 +105,13 @@ export const list = async (config: ListContext<GeoNetworkConfig, typeof capabili
     const parsed = parser.parse(response.data)
     const root = parsed.GetRecordsResponse || parsed['csw:GetRecordsResponse']
     if (!root) {
-      console.error('[GeoNetwork] ERREUR: Réponse XML invalide (pas de GetRecordsResponse)')
+      console.error('[CSW] ERREUR: Réponse XML invalide (pas de GetRecordsResponse)')
       return { count: 0, results: [], path: [] }
     }
 
     const searchResults = root.SearchResults || root['csw:SearchResults']
     if (!searchResults) {
-      console.error('[GeoNetwork] ERREUR: Pas de SearchResults')
+      console.error('[CSW] ERREUR: Pas de SearchResults')
       return { count: 0, results: [], path: [] }
     }
 
@@ -130,7 +130,6 @@ export const list = async (config: ListContext<GeoNetworkConfig, typeof capabili
         title: titleRecord,
         updatedAt: date || new Date().toISOString(),
         type: 'resource',
-        origin: `${catalogConfig.url}/srv/fre/catalog.search#/metadata/${identifier}`,
         format: type || 'unknown'
       }
     }) as ResourceList
@@ -141,7 +140,7 @@ export const list = async (config: ListContext<GeoNetworkConfig, typeof capabili
       path: []
     }
   } catch (error: any) {
-    console.error('[GeoNetwork] ERREUR :', error.message)
+    console.error('[CSW] ERREUR :', error.message)
     if (error.response) console.error('Data:', error.response.data)
     throw new Error('Erreur lors de la recherche CSW')
   }

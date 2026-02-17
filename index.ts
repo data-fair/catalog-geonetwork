@@ -1,20 +1,11 @@
 import type CatalogPlugin from '@data-fair/types-catalogs'
-import { importConfigSchema, configSchema, assertConfigValid, type GeoNetworkConfig } from '#types'
-import { type GeoNetworkCapabilities, capabilities } from './lib/capabilities.ts'
+import { importConfigSchema, configSchema, assertConfigValid, type CSWConfig } from '#types'
+import { type CSWCapabilities, capabilities } from './lib/capabilities.ts'
 
-const plugin: CatalogPlugin<GeoNetworkConfig, GeoNetworkCapabilities> = {
+const plugin: CatalogPlugin<CSWConfig, CSWCapabilities> = {
   async prepare (context) {
     if (context.catalogConfig.url) {
-      let baseUrl = context.catalogConfig.url.split('?')[0].trim()
-      if (baseUrl.endsWith('/')) {
-        baseUrl = baseUrl.slice(0, -1) // Remove trailing slash
-      }
-      if (baseUrl.includes('/srv/')) {
-        baseUrl = baseUrl.split('/srv/')[0] // Remove anything after /srv/ and including it
-      } else if (baseUrl.endsWith('/csw')) {
-        baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/csw'))
-      }
-      context.catalogConfig.url = baseUrl
+      context.catalogConfig.url = context.catalogConfig.url.trim()
     }
     return context
   },
@@ -29,11 +20,11 @@ const plugin: CatalogPlugin<GeoNetworkConfig, GeoNetworkCapabilities> = {
   },
 
   metadata: {
-    title: 'geoNetwork',
+    title: 'CSW',
     thumbnailPath: './lib/resources/logo.png',
     i18n: {
-      en: { description: 'Uses CSW to import datasets (GeoNetwork, ...)' },
-      fr: { description: 'Utilise du CSW pour importer des datasets (GeoNetwork, ...)' }
+      en: { description: 'Uses CSW to import datasets (CSW, ...)' },
+      fr: { description: 'Utilise du CSW pour importer des datasets (CSW, ...)' }
     },
     capabilities
   },

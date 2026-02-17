@@ -1,11 +1,11 @@
 {
-  "$id": "https://github.com/data-fair/catalog-geoNetwork/catalog-config",
+  "$id": "https://github.com/data-fair/catalog-csw/catalog-config",
   "x-exports": [
     "types",
     "validate",
     "schema"
   ],
-  "title": "GeoNetworkConfig",
+  "title": "CSWConfig",
   "type": "object",
   "additionalProperties": false,
   "properties": {

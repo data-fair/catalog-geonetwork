@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser'
 import path from 'path'
 import axios from '@data-fair/lib-node/axios.js'
 import type { CatalogPlugin, GetResourceContext, Resource } from '@data-fair/types-catalogs'
-import type { GeoNetworkConfig } from '#types'
+import type { CSWConfig } from '#types'
 import { downloadFileWithProgress } from './utils/download.ts'
 
 const parser = new XMLParser({
@@ -110,7 +110,7 @@ const findBestDownloadUrl = (metadata: any, resourceId: string, log: any): { url
   return null
 }
 
-export const getResource = async ({ importConfig, catalogConfig, resourceId, tmpDir, log }: GetResourceContext<GeoNetworkConfig>): ReturnType<CatalogPlugin['getResource']> => {
+export const getResource = async ({ importConfig, catalogConfig, resourceId, tmpDir, log }: GetResourceContext<CSWConfig>): ReturnType<CatalogPlugin['getResource']> => {
   const cswBody = `
     <csw:GetRecordById 
       xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" 
@@ -122,7 +122,7 @@ export const getResource = async ({ importConfig, catalogConfig, resourceId, tmp
       <csw:ElementSetName>full</csw:ElementSetName>
     </csw:GetRecordById>`
 
-  const baseUrl = `${catalogConfig.url}/srv/fre/csw`
+  const baseUrl = catalogConfig.url
 
   try {
     await log.step('Récupération des métadonnées (CSW)')
@@ -189,12 +189,11 @@ export const getResource = async ({ importConfig, catalogConfig, resourceId, tmp
       filePath: destPath,
       format: downloadInfo.format,
       updatedAt: metadata.dateStamp?.Date || metadata.dateStamp?.DateTime || new Date().toISOString(),
-      size: 0,
-      origin: `${catalogConfig.url}/srv/fre/catalog.search#/metadata/${resourceId}`
+      size: 0
     } as Resource
   } catch (error: any) {
     const msg = error.message || String(error)
     await log.error(`Erreur lors du getResource: ${msg}`)
-    throw new Error(`Échec de l'import GeoNetwork: ${msg}`)
+    throw new Error(`Échec de l'import CSW: ${msg}`)
   }
 }

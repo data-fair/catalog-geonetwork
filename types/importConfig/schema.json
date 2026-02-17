@@ -1,5 +1,5 @@
 {
-  "$id": "https://github.com/data-fair/catalog-geoNetwork/import-config",
+  "$id": "https://github.com/data-fair/catalog-csw/import-config",
   "x-exports": [
     "types",
     "validate",
@@ -20,6 +20,7 @@
         "password": {
           "type": "string",
           "title": "Mot de passe",
+          "x-display": "password",
           "props": {
             "type": "password",
             "autocomplete": "suppress"

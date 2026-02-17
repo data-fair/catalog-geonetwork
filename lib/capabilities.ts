@@ -14,5 +14,5 @@ export const capabilities = [
   'importConfig',
 ] satisfies Capability[]
 
-export type GeoNetworkCapabilities = typeof capabilities
+export type CSWCapabilities = typeof capabilities
 export default capabilities

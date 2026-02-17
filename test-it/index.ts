@@ -8,9 +8,9 @@ import { logFunctions } from './test-utils.ts'
 import plugin from '../index.ts'
 const catalogPlugin: CatalogPlugin = plugin as CatalogPlugin
 
-/** geoNetwork catalog configuration for testing purposes. */
+/** CSW catalog configuration for testing purposes. */
 const catalogConfig = {
-  url: 'https://geobretagne.fr/geonetwork',
+  url: 'https://geobretagne.fr/CSW',
   delay: 100,
 }
 
@@ -27,7 +27,7 @@ const getResourceParams = {
   log: logFunctions
 }
 
-describe('catalog-geoNetwork', () => {
+describe('catalog-CSW', () => {
   it('should list resources and folder from root', async () => {
     const res = await catalogPlugin.list({
       catalogConfig,
