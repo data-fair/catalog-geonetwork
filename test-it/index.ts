@@ -10,7 +10,7 @@ const catalogPlugin: CatalogPlugin = plugin as CatalogPlugin
 
 /** CSW catalog configuration for testing purposes. */
 const catalogConfig = {
-  url: 'https://geobretagne.fr/CSW',
+  url: 'https://geobretagne.fr/geonetwork/srv/fre/csw',
   delay: 100,
 }
 

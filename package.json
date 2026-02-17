@@ -1,5 +1,5 @@
 {
-  "name": "@data-fair/catalog-CSW",
+  "name": "@data-fair/catalog-csw",
   "description": "A simple CSW plugin for the Data Fair catalogs service.",
   "version": "0.1.0",
   "main": "index.ts",
