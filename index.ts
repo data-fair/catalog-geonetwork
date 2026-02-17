@@ -1,7 +1,6 @@
 import type CatalogPlugin from '@data-fair/types-catalogs'
 import { importConfigSchema, configSchema, assertConfigValid, type GeoNetworkConfig } from '#types'
 import { type GeoNetworkCapabilities, capabilities } from './lib/capabilities.ts'
-import i18n from './lib/i18n.ts'
 
 const plugin: CatalogPlugin<GeoNetworkConfig, GeoNetworkCapabilities> = {
   async prepare (context) {
@@ -32,7 +31,10 @@ const plugin: CatalogPlugin<GeoNetworkConfig, GeoNetworkCapabilities> = {
   metadata: {
     title: 'geoNetwork',
     thumbnailPath: './lib/resources/logo.png',
-    i18n,
+    i18n: {
+      en: { description: 'Uses CSW to import datasets (GeoNetwork, ...)' },
+      fr: { description: 'Utilise du CSW pour importer des datasets (GeoNetwork, ...)' }
+    },
     capabilities
   },
 
