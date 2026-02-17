@@ -22,8 +22,8 @@ const plugin: CatalogPlugin<CSWConfig, CSWCapabilities> = {
   metadata: {
     title: 'CSW',
     i18n: {
-      en: { description: 'Uses CSW to import datasets (CSW, ...)' },
-      fr: { description: 'Utilise du CSW pour importer des datasets (CSW, ...)' }
+      en: { description: 'Uses CSW 2.0.2 to import datasets (GeoNetwork, ...)' },
+      fr: { description: 'Utilise du CSW 2.0.2 pour importer des datasets (GeoNetwork, ...)' }
     },
     capabilities
   },

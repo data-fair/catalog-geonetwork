@@ -1,13 +1,8 @@
 import axios from '@data-fair/lib-node/axios.js'
 import { getText, asArray } from './common.ts'
+import type { DownloadCandidate } from './types.ts'
 
-interface DownloadCandidate {
-  url: string
-  format: string
-  score: number
-}
-
-export const isUrlValid = async (url: string, log: any): Promise<boolean> => {
+const isUrlValid = async (url: string, log: any): Promise<boolean> => {
   try {
     await axios.head(url, {
       timeout: 5000,
@@ -66,12 +61,11 @@ const analyzeLink = (linkWrapper: any): DownloadCandidate | null => {
     return { url, format: 'json', score: 5 }
   }
 
-  // 7. WFS Brut (à construire)
+  // 7. WFS Brut
   if (p.includes('ogc:wfs') || p.includes('wfs') || u.includes('service=wfs')) {
     return { url, format: 'wfs_service', score: 2 }
   }
 
-  // 8. Download générique
   if (p.includes('download') || p.includes('file')) {
     return { url, format: 'file', score: 1 }
   }
@@ -79,6 +73,13 @@ const analyzeLink = (linkWrapper: any): DownloadCandidate | null => {
   return null
 }
 
+/**
+ * Parses the CSW metadata to find the best download URL based on heuristics and validation.
+ * @param metadata The parsed ISO 19139 metadata object
+ * @param resourceId The resource ID (used for logging and WFS typeName fallback)
+ * @param log The logger object for logging progress and warnings
+ * @returns An object containing the best URL and its format, or null if no valid link is found
+ */
 export const findBestDownloadUrl = async (metadata: any, resourceId: string, log: any): Promise<{ url: string, format: string } | null> => {
   const root = metadata.MD_Metadata || metadata
   const distributionInfo = root?.distributionInfo?.MD_Distribution
@@ -96,21 +97,18 @@ export const findBestDownloadUrl = async (metadata: any, resourceId: string, log
 
   if (allLinks.length === 0) return null
 
-  // Collecte et tri
   const candidates: DownloadCandidate[] = []
   for (const link of allLinks) {
     const candidate = analyzeLink(link)
     if (candidate) candidates.push(candidate)
   }
 
-  // Tri décroissant par score
   candidates.sort((a, b) => b.score - a.score)
 
   if (candidates.length === 0) return null
 
   log.info(`${candidates.length} liens candidats trouvés. Vérification...`)
 
-  // Sélection du meilleur lien valide (Failover)
   let bestCandidate: DownloadCandidate | null = null
 
   for (const candidate of candidates) {

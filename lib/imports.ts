@@ -14,6 +14,11 @@ const parser = new XMLParser({
   parseTagValue: true
 })
 
+/**
+ * Fetches the metadata for a given resource ID from the CSW endpoint, determines the best download URL, and downloads the file to a temporary directory.
+ * @param context The context object containing catalog configuration, resource ID, temporary directory path, and logger
+ * @returns An object containing details about the downloaded resource, including title, description, file path, format, and updated date
+ */
 export const getResource = async ({ catalogConfig, resourceId, tmpDir, log }: GetResourceContext<CSWConfig>): ReturnType<CatalogPlugin['getResource']> => {
   // CSW GetRecordById request body (Requesting full ISO 19139 metadata)
   const cswBody = `

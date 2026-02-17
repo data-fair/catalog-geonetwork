@@ -20,6 +20,11 @@ const getTextValue = (input: any): string => {
   return String(input)
 }
 
+/**
+ * Performs a CSW GetRecords request to list resources based on the provided query and pagination parameters.
+ * @param config The context object containing catalog configuration, query parameters, and logger
+ * @returns An object containing the total count of matched records, an array of resource summaries, and the path for pagination
+ */
 export const list = async (config: ListContext<CSWConfig, typeof capabilities>): ReturnType<CatalogPlugin<CSWConfig>['list']> => {
   const { catalogConfig, params } = config
   const query = params?.q ? params.q.trim() : ''
@@ -97,13 +102,13 @@ export const list = async (config: ListContext<CSWConfig, typeof capabilities>):
     const parsed = parser.parse(response.data)
     const root = parsed.GetRecordsResponse || parsed['csw:GetRecordsResponse']
     if (!root) {
-      console.error('[CSW] ERREUR: Réponse XML invalide (pas de GetRecordsResponse)')
+      console.error('Réponse XML invalide (pas de GetRecordsResponse)')
       return { count: 0, results: [], path: [] }
     }
 
     const searchResults = root.SearchResults || root['csw:SearchResults']
     if (!searchResults) {
-      console.error('[CSW] ERREUR: Pas de SearchResults')
+      console.error('Pas de SearchResults')
       return { count: 0, results: [], path: [] }
     }
 
@@ -132,7 +137,7 @@ export const list = async (config: ListContext<CSWConfig, typeof capabilities>):
       path: []
     }
   } catch (error: any) {
-    console.error('[CSW] ERREUR :', error.message)
+    console.error('ERREUR :', error.message)
     if (error.response) console.error('Data:', error.response.data)
     throw new Error('Erreur lors de la recherche CSW')
   }
