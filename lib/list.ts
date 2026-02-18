@@ -26,23 +26,27 @@ export const list = async (config: ListContext<CSWConfig, typeof capabilities>):
   const size = Number(params?.size || 10)
   const startPosition = (page - 1) * size + 1
 
+  // Bloc of XML filters to find records with relevant formats in their metadata (WFS, GeoJSON, JSON, CSV, ZIP)
   const formatFilter = `
     <ogc:Or>
-      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+      <ogc:PropertyIsLike matchCase="false" wildCard="%" singleChar="_" escapeChar="\\">
         <ogc:PropertyName>AnyText</ogc:PropertyName>
-        <ogc:Literal>%SHAPE-ZIP%</ogc:Literal>
+        <ogc:Literal>%WFS%</ogc:Literal>
       </ogc:PropertyIsLike>
-      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+      
+      <ogc:PropertyIsLike matchCase="false" wildCard="%" singleChar="_" escapeChar="\\">
         <ogc:PropertyName>AnyText</ogc:PropertyName>
-        <ogc:Literal>%csv%</ogc:Literal>
+        <ogc:Literal>%JSON%</ogc:Literal>
       </ogc:PropertyIsLike>
-      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+
+      <ogc:PropertyIsLike matchCase="false" wildCard="%" singleChar="_" escapeChar="\\">
         <ogc:PropertyName>AnyText</ogc:PropertyName>
-        <ogc:Literal>%json%</ogc:Literal>
+        <ogc:Literal>%CSV%</ogc:Literal>
       </ogc:PropertyIsLike>
-      <ogc:PropertyIsLike wildCard="%" singleChar="_" escapeChar="\\\\">
+
+      <ogc:PropertyIsLike matchCase="false" wildCard="%" singleChar="_" escapeChar="\\">
         <ogc:PropertyName>AnyText</ogc:PropertyName>
-        <ogc:Literal>%geojson%</ogc:Literal>
+        <ogc:Literal>%ZIP%</ogc:Literal>
       </ogc:PropertyIsLike>
     </ogc:Or>`
 

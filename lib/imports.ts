@@ -99,8 +99,6 @@ export const getResource = async ({ catalogConfig, resourceId, tmpDir, log }: Ge
       size: 0
     } as Resource
   } catch (error: any) {
-    const msg = error.message || String(error)
-    await log.error(`Error during getResource: ${msg}`)
-    throw new Error(`CSW import failed: ${msg}`)
+    throw new Error(error.message || 'Error fetching resource from CSW')
   }
 }
