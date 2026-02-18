@@ -4,10 +4,8 @@ import { type CSWCapabilities, capabilities } from './lib/capabilities.ts'
 
 const plugin: CatalogPlugin<CSWConfig, CSWCapabilities> = {
   async prepare (context) {
-    if (context.catalogConfig.url) {
-      context.catalogConfig.url = context.catalogConfig.url.trim()
-    }
-    return context
+    const prepare = (await import('./lib/prepare.ts')).default
+    return prepare(context)
   },
   async list (context) {
     const { list } = await import('./lib/list.ts')
