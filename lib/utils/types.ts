@@ -14,4 +14,5 @@ export interface DownloadCandidate {
   url: string
   format: string
   score: number
+  layerName?: string
 }
