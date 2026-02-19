@@ -15,10 +15,12 @@ export const isUrlValid = async (url: string, log: any, isWFSTest = false): Prom
       })
 
       if (response.status >= 400) {
+        log.warning(`URL non valide : ${url}`)
         return false
       }
       const content = String(response.data)
       if (content.includes('ExceptionReport') || content.includes('ServiceException')) {
+        log.warning(`URL non valide : ${url}`)
         return false
       }
       // if the requested format is JSON but the response is XML, it's likely that the WFS doesn't support the requested format
@@ -34,7 +36,117 @@ export const isUrlValid = async (url: string, log: any, isWFSTest = false): Prom
       return true
     }
   } catch (err) {
+    log.warning(`URL non valide : ${url}`)
     return false
+  }
+}
+
+const negotiateWfsFormat = async (
+  originalUrl: string,
+  resourceId: string,
+  layerName: string | null | undefined,
+  log: any
+): Promise<{ url: string; format: string } | null> => {
+  log.info(`Service WFS détecté sur ${originalUrl}, test des formats supportés...`)
+
+  const [baseUrl, existingQuery] = originalUrl.split('?')
+  const params = new URLSearchParams(existingQuery || '')
+
+  const keysToDelete: string[] = []
+  for (const key of params.keys()) {
+    const lowerKey = key.toLowerCase()
+    if (['service', 'request', 'version', 'typename', 'typenames', 'outputformat', 'srsname'].includes(lowerKey)) {
+      keysToDelete.push(key)
+    }
+  }
+  keysToDelete.forEach(k => params.delete(k))
+
+  params.set('SERVICE', 'WFS')
+  params.set('VERSION', '2.0.0')
+  params.set('REQUEST', 'GetFeature')
+  params.set('TYPENAMES', layerName || resourceId)
+
+  const formatsToTry = [
+    { param: 'application/json; subtype=geojson', format: 'geojson' },
+    { param: 'geojson', format: 'geojson' },
+    { param: 'application/json', format: 'geojson' },
+    { param: 'application/vnd.geo+json', format: 'geojson' },
+    { param: 'json', format: 'geojson' },
+    { param: 'SHAPE-ZIP', format: 'shapefile' },
+    { param: 'shapezip', format: 'shapefile' },
+    { param: 'application/zip', format: 'shapefile' },
+    { param: 'application/x-shapefile', format: 'shapefile' },
+    { param: 'csv', format: 'csv' },
+    { param: 'text/csv', format: 'csv' },
+    { param: 'kml', format: 'kml' },
+    { param: 'application/vnd.google-earth.kml+xml', format: 'kml' }
+  ]
+
+  for (const f of formatsToTry) {
+    const testParams = new URLSearchParams(params)
+    testParams.set('OUTPUTFORMAT', f.param)
+    const testUrl = `${baseUrl}?${testParams.toString()}`
+    if (await isUrlValid(testUrl, log, true)) {
+      log.info(`Format WFS supporté trouvé : ${f.param}. URL finale WFS : ${testUrl}`)
+      return {
+        url: testUrl,
+        format: f.format
+      }
+    }
+  }
+
+  log.error('Ce service WFS ne propose aucun format supporté par DataFair (GeoJSON, Shapefile, KML, CSV)')
+  return null
+}
+
+const detectFormatFromHeaders = async (url: string, log: any): Promise<string | null> => {
+  try {
+    const response = await axios.head(url, {
+      timeout: 5000,
+      validateStatus: (status) => status < 400
+    })
+    const contentType = response.headers['content-type']
+    if (!contentType) return null
+
+    if (contentType.includes('application/json') || contentType.includes('application/geo+json')) {
+      return 'geojson'
+    }
+    if (contentType.includes('application/zip') || contentType.includes('application/x-zip-compressed')) {
+      return 'shapefile'
+    }
+    if (contentType.includes('text/csv') || contentType.includes('application/csv')) {
+      return 'csv'
+    }
+    if (contentType.includes('kml') || contentType.includes('xml')) {
+      return 'kml'
+    }
+    if (contentType.includes('text/tab-separated-values') || contentType.includes('text/tsv')) {
+      return 'tsv'
+    }
+
+    if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+      return 'xlsx'
+    }
+
+    if (contentType.includes('application/vnd.ms-excel')) {
+      return 'xls'
+    }
+
+    if (contentType.includes('application/vnd.oasis.opendocument.spreadsheet')) {
+      return 'ods'
+    }
+
+    if (contentType.includes('application/gpx+xml') || contentType.includes('gpx')) {
+      return 'gpx'
+    }
+
+    if (contentType.includes('application/vnd.google-earth.kmz') || contentType.includes('kmz')) {
+      return 'kmz'
+    }
+    return null
+  } catch (error) {
+    log.warning(`Impossible de détecter le format pour ${url} (Erreur HTTP).`)
+    return null
   }
 }
 
@@ -59,14 +171,18 @@ const analyzeLink = (linkWrapper: any): DownloadCandidate | null => {
     return { url, format, score }
   }
 
+  if (u.includes('/api/data/') || u.includes('/api/records/')) {
+    return { url, format: 'shapefile', score: 11 }
+  }
+
   // 2. Shapefile (Zip)
   if (u.includes('shape-zip') || u.endsWith('.zip') || n.includes('shapefile')) {
-    return { url, format: 'shapefile', score: 10 }
+    return { url, format: 'shapefile', score: 8 }
   }
 
   // 3. GeoJSON
   if (u.includes('geojson') || p.includes('geo+json') || n.includes('geojson')) {
-    return { url, format: 'geojson', score: 8 }
+    return { url, format: 'geojson', score: 10 }
   }
 
   // 4. CSV
@@ -89,7 +205,7 @@ const analyzeLink = (linkWrapper: any): DownloadCandidate | null => {
     return { url, format: 'wfs_service', score: 2, layerName: name }
   }
 
-  return null
+  return { url, format: 'unknown', score: 1 }
 }
 
 /**
@@ -138,10 +254,20 @@ export const findBestDownloadUrl = async (metadata: any, resourceId: string, log
   log.info(`${candidates.length} liens candidats trouvés. Vérification...`)
 
   let bestCandidate: DownloadCandidate | null = null
-
   for (const candidate of candidates) {
-    // Prioritize direct links with format hints, but allow WFS if no better option is found
-    if (candidate.format !== 'wfs_service' || candidate.url.toLowerCase().includes('outputformat=')) {
+    if (candidate.format === 'wfs_service') {
+      log.info('lien WFS detecté, validation en cours...')
+      if (await isUrlValid(candidate.url, log)) {
+        bestCandidate = candidate
+        log.info(`Lien WFS validé : ${candidate.url}`)
+        break
+      } else {
+        const wfsResult = await negotiateWfsFormat(candidate.url, resourceId, candidate.layerName, log)
+        if (wfsResult) {
+          return wfsResult
+        }
+      }
+    } else if (candidate.format !== 'wfs_service') {
       if (await isUrlValid(candidate.url, log)) {
         bestCandidate = candidate
         log.info(`Lien direct validé : ${candidate.url}`)
@@ -157,73 +283,29 @@ export const findBestDownloadUrl = async (metadata: any, resourceId: string, log
     return null
   }
 
-  let { url, format, layerName } = bestCandidate
+  let { url, format } = bestCandidate
 
-  if (url.includes('/api/data/') && !url.toLowerCase().includes('format=')) {
-    const separator = url.includes('?') ? '&' : '?'
-    url = `${url}${separator}format=csv`
-    format = 'csv'
+  if (url.includes('/api/data/')) {
+    const urlObj = new URL(url)
+    urlObj.searchParams.delete('format')
+    const cleanUrl = urlObj.toString()
+    const detectedFormat = await detectFormatFromHeaders(cleanUrl, log)
+    if (detectedFormat) {
+      url = cleanUrl
+      format = detectedFormat
+    } else {
+      url = cleanUrl
+      format = 'shapefile'
+    }
   }
 
-  if (format === 'wfs_service' && !url.toLowerCase().includes('outputformat=')) {
-    log.info(`Service WFS détecté sur ${url}, test des formats supportés...`)
-    const [baseUrl, existingQuery] = url.split('?')
-    const params = new URLSearchParams(existingQuery || '')
-    const keysToDelete: string[] = []
-    for (const key of params.keys()) {
-      const lowerKey = key.toLowerCase()
-      if (['service', 'request', 'version', 'typename', 'typenames', 'outputformat', 'srsname'].includes(lowerKey)) {
-        keysToDelete.push(key)
-      }
-    }
-    keysToDelete.forEach(k => params.delete(k))
-
-    params.set('SERVICE', 'WFS')
-    params.set('VERSION', '2.0.0')
-    params.set('REQUEST', 'GetFeature')
-    if (layerName) {
-      params.set('TYPENAMES', layerName)
+  if (format === 'unknown') {
+    const detectedFormat = await detectFormatFromHeaders(url, log)
+    if (detectedFormat) {
+      format = detectedFormat
+      log.info(`Format détecté à partir des headers : ${format}`)
     } else {
-      params.set('TYPENAMES', resourceId)
-    }
-
-    const formatsToTry = [
-      { param: 'application/json; subtype=geojson', format: 'geojson' },
-      { param: 'geojson', format: 'geojson' },
-      { param: 'application/json', format: 'geojson' },
-      { param: 'application/vnd.geo+json', format: 'geojson' },
-      { param: 'json', format: 'geojson' },
-      { param: 'SHAPE-ZIP', format: 'shapefile' },
-      { param: 'shapezip', format: 'shapefile' },
-      { param: 'application/zip', format: 'shapefile' },
-      { param: 'application/x-shapefile', format: 'shapefile' },
-      { param: 'csv', format: 'csv' },
-      { param: 'text/csv', format: 'csv' },
-      { param: 'kml', format: 'kml' },
-      { param: 'application/vnd.google-earth.kml+xml', format: 'kml' }
-    ]
-
-    let foundUrl = null
-    let foundFormat = null
-
-    for (const f of formatsToTry) {
-      const testParams = new URLSearchParams(params)
-      testParams.set('OUTPUTFORMAT', f.param)
-      const testUrl = `${baseUrl}?${testParams.toString()}`
-      if (await isUrlValid(testUrl, log, true)) {
-        log.info(`Format WFS supporté trouvé : ${f.param}`)
-        foundUrl = testUrl
-        foundFormat = f.format
-        break // We stop at the first valid format fFound, prioritizing GeoJSON and Shapefile over others
-      }
-    }
-
-    if (foundUrl && foundFormat) {
-      url = foundUrl
-      log.info(`URL finale WFS : ${url}`)
-      format = foundFormat
-    } else {
-      log.error('Ce service WFS ne propose aucun format supporté par DataFair (GeoJSON, Shapefile, KML, CSV)')
+      log.warning('Aucun format supporté par DataFair (GeoJSON, Shapefile, KML, CSV, XLSX, XLS, ODS, GPX, KMZ)')
       return null
     }
   }

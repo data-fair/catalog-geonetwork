@@ -21,6 +21,21 @@
       "type": "string",
       "format": "uri",
       "default": "https://geobretagne.fr/geonetwork/srv/fre/csw"
+    },
+    "download_info": {
+      "type": "string",
+      "readOnly": true,
+      "title": "Download and Format Selection Info",
+      "x-i18n-title": {
+        "fr": "À savoir : Téléchargements et Formats"
+      },
+      "description": "A CSW catalog is primarily a data directory. It can happen that some documents do not contain a direct download link, or that these links no longer work (remote server unavailable). In these cases, the data cannot be retrieved.\n\n**Exploration by type:**\nTo make your search easier, documents are automatically organized by file type. We recommend selecting the 'dataset' folder if it is available. Once inside, you can use the search bar to filter the results by your desired format (e.g., csv, pdf, etc.).\n\n**Data retrieval:**\nWhen a document offers multiple links, the system automatically chooses the best option for you. It ensures the link is functional and prioritizes the most usable formats for the platform (GeoJSON first, then Shapefile, CSV, etc.). Even if the source does not clearly specify the format, the system analyzes the link behind the scenes to retrieve the data in its most exploitable form.",
+      "x-i18n-description": {
+        "fr": "Un catalogue CSW est un annuaire de données. Il peut arriver que certains documents ne contiennent pas de lien de téléchargement direct, ou que ces liens ne fonctionnent plus (serveur distant indisponible). Dans ces cas, les données ne pourront pas être récupérées.\n\n**Exploration par type :**\nPour faciliter vos recherches, les documents sont automatiquement organisés par types de fichiers. Il est recommandé de sélectionner le dossier « dataset » s'il est disponible. Une fois à l'intérieur, vous pouvez utiliser la barre de recherche pour filtrer les résultats selon le format souhaité (par exemple : CSV, JSON, etc.).\n\n**Récupération de la donnée :**\nLorsqu'un document propose plusieurs liens, le système choisit automatiquement la meilleure option pour vous. Il s'assure que le lien est fonctionnel et privilégie les formats les plus faciles à utiliser sur la plateforme (en priorité le GeoJSON, puis le Shapefile, le CSV, etc.). Même si la source ne précise pas clairement le format, le système analyse le lien en arrière-plan pour récupérer la donnée sous sa forme la plus exploitable."
+      },
+      "layout": {
+        "cols": 4
+      }
     }
   },
   "required": ["url"]
